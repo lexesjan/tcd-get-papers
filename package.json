@@ -1,0 +1,11 @@
+{
+  "name": "tcd-get-papers",
+  "version": "1.0.0",
+  "description": "Web page for scraping TCD past exam papers",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Matthew Henry",
+  "license": "ISC"
+}

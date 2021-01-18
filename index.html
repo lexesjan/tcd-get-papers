@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8'>
+    <meta http-equiv='X-UA-Compatible' content='IE=edge'>
+    <title>Page Title</title>
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
+    <!-- <script src="https://cdn.jsdelivr.net/npm/vue@2"></script> -->
+    <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+    <!-- Compiled and minified CSS -->
+    <!-- CSS only -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-giJF6kkoqNQ00vy+HMDP7azOuL0xtbfIcaT9wjKHr8RbDVddVHyTfAAsrekwKmP1" crossorigin="anonymous">
+<!-- JavaScript Bundle with Popper -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/js/bootstrap.bundle.min.js" integrity="sha384-ygbV9kiqUc6oa4msXn9868pTtWMgiQaeYH7/t7LECLbyPA2x65Kgf80OJFdroafW" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+          <a class="navbar-brand" href="#">Find my papers</a>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+          </button>
+          <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav d-flex">
+              <li class="nav-item">
+                <a class="nav-link active" aria-current="page" href="mailto:henrym2@tcd.ie">Contact</a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </nav>
+    <div id="app" class="container">
+        <div class="row">
+            <div class="col-sm"></div>
+            <div class="col">
+                <div class="card mt-4">
+                    <div class="card-body">
+                        <h5 class="card-title">Search for papers</h5>
+                        <p>To find exam papers, enter in a module code below, for example <b>'CSU22014'</b>.</p>
+                        <div class="input-group">
+                            <input type="text" class="form-control" v-model="searchParam" placeholder="Module Code">
+                            <button class="btn btn-outline-secondary" type="button" aria-expanded="false" @click="search('code')">Search</button>
+                            <!-- <ul class="dropdown-menu dropdown-menu-end">
+                                <li><a class="dropdown-item" @click="search('course')">Course</a></li>
+                                <li><a class="dropdown-item" @click="search('code')">Module Code</a></li>
+                            </ul> -->
+                        </div>
+                        <div class="form-check-inline" v-for="year in years" :key="year.val">
+                            <input class="form-check-input" type="checkbox" v-model="year.checked">
+                            <label class="form-check-label" for="flexCheckDefault">{{year.text}}</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm"></div>
+        </div>
+        <div class="row">
+            <div class="col-sm"></div>
+            <div class="col" v-if="error">
+                <div class="card text-white bg-secondary mt-4">
+                    <div class="card-header">Something may have gone wrong!</div>
+                    <div class="card-body">
+                        <p>It's possible the search didn't find anything, or something has changed on TCD's side.</p>
+                        <p>Double check the module code and associated years are correct, some module codes have changed recently!</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm"></div>
+        </div>
+        <div class="row mt-3" v-if="results.length > 0">
+            <table class="table table-striped table-hover table-bordered">
+                <thead>
+                    <tr>
+                        <th scope="col">Year</th>
+                        <th scope="col">Module</th>
+                        <th scope="col">Code</th>
+                        <th scope="col">Paper</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-for="r in results" :key="r.paper">
+                        <th scope="row">{{r.year}}</th>
+                        <th>{{r.module}}</th>
+                        <th>{{r.code}}</th>
+                        <th>Paper <a :href="r.paper" target="_blank">here</a></th>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <script>
+        axios.default.timeout = 1000000000000000
+        var app = new Vue({
+            el: '#app',
+            data: {
+                searchParam: "",
+                type: false,
+                selectedYears: [],
+                results: [],
+                error: false, 
+                years: [
+                    {
+                        text: "2019-2020",
+                        val: 1920,
+                        checked: false
+                    },
+                    {
+                        text: "2018-2019",
+                        val: 1819,
+                        checked: false
+                    },
+                    {
+                        text: "2017-2018",
+                        val: 1718,
+                        checked: false
+                    },
+                    {
+                        text: "2016-2017",
+                        val: 1617,
+                        checked: false
+                    },
+                ]
+            },
+            methods: {
+                async search (type) {
+                    try {
+                        let baseUrl = `https://tcd-get-papers.vercel.app/api/papers?${type}=${this.searchParam.toUpperCase()}&years[]=${this.selectedYears.length > 0 ? this.selectedYears : [1920]}` 
+                        let res = await axios.get(baseUrl)
+                        //let data = await res.json()
+                        if(res.data != "malformed request") {
+                            this.results = this.parseResults(res.data)
+                            console.log(this.results)
+                            if(this.results.length <= 0) {
+                                this.errorOccured("Empty")
+                            } else {
+                                this.error = false
+                            }
+                        } else {
+                            this.errorOccured("Malformed request")
+                        }
+                    } catch (e) {
+                        this.errorOccured(e)
+                    }
+                    
+                },
+                parseResults(data) {
+                    out = []
+                    for (const year in data) {
+                        let tmp = Object.keys(data[year]).map(
+                            (key) => (
+                                {
+                                    year: year, 
+                                    module: key, 
+                                    paper: data[year][key],
+                                    code: /[^/]*$/.exec(data[year][key])[0].split(".")[0]
+                                }
+                            )
+                        )
+                        out.push(...tmp)
+                    }
+                    return out
+                },
+                errorOccured(e) {
+                    this.error = true
+                    console.log(e)
+                }
+            },
+            watch: {
+                years: {
+                    deep: true,
+                    handler(newValue, oldValue) {
+                        this.selectedYears = newValue.filter(year => year.checked).map(year => year.val)
+                    }
+                }
+            },
+        })
+    </script>
+</body>
+</html>
